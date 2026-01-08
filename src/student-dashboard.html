@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - SUST Digital Attendance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">🎓 SUST Digital Attendance</div>
+            <div class="flex gap-md">
+                <span id="student-name" class="text-secondary"></span>
+                <button onclick="logout()" class="btn btn-outline">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Welcome Section -->
+        <div class="mb-lg fade-in">
+            <h1>Student Dashboard</h1>
+            <p id="student-info"></p>
+        </div>
+
+        <!-- Alert Container -->
+        <div id="alert-container"></div>
+
+        <!-- Quick Actions -->
+        <div class="flex gap-md mb-lg fade-in" style="flex-wrap: wrap;">
+            <button onclick="loadActiveClasses()" class="btn btn-primary">
+                Refresh Classes
+            </button>
+            <button onclick="openHistoryModal()" class="btn btn-secondary">
+                My History
+            </button>
+        </div>
+
+        <!-- Active Classes Section -->
+        <div class="card fade-in">
+            <div class="card-header">
+                <h2>Active Classes</h2>
+                <p style="margin: 0; font-size: 0.9rem;">Select a class to mark your attendance</p>
+            </div>
+            <div class="card-body">
+                <div id="classes-loading" class="flex-center" style="padding: 2rem;">
+                    <div class="spinner"></div>
+                </div>
+                <div id="classes-container" class="hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Attendance Modal -->
+    <div id="attendance-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeAttendanceModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-class-name"></h2>
+                <button onclick="closeAttendanceModal()" class="btn-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-alert"></div>
+
+                <div class="form-group">
+                    <label class="form-label">Class Info</label>
+                    <div class="flex gap-sm">
+                        <span id="modal-class-type" class="badge"></span>
+                        <span id="modal-teacher-name" class="text-secondary"></span>
+                    </div>
+                </div>
+
+                <div id="location-status" class="hidden">
+                    <div class="form-group">
+                        <label class="form-label">Location Status</label>
+                        <div id="location-info" class="alert"></div>
+                    </div>
+                </div>
+
+                <!-- Camera Capture Section for Offline Classes -->
+                <div id="camera-section" class="hidden">
+                    <div class="form-group">
+                        <label class="form-label">📸 Photo Verification Required</label>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            Take a selfie to verify your identity during offline class attendance
+                        </p>
+
+                        <!-- Camera Preview -->
+                        <div id="camera-preview" class="camera-container">
+                            <video id="camera-video" autoplay playsinline></video>
+                            <canvas id="camera-canvas" class="hidden"></canvas>
+                            <div id="captured-image-preview" class="hidden">
+                                <img id="captured-image" src="" alt="Captured photo">
+                            </div>
+                        </div>
+
+                        <!-- Camera Controls -->
+                        <div class="flex gap-sm" style="margin-top: 1rem;">
+                            <button id="start-camera-btn" type="button" class="btn btn-secondary" style="flex: 1;">
+                                Start Camera
+                            </button>
+                            <button id="capture-photo-btn" type="button" class="btn btn-primary hidden"
+                                style="flex: 1;">
+                                Capture Photo
+                            </button>
+                            <button id="retake-photo-btn" type="button" class="btn btn-outline hidden" style="flex: 1;">
+                                Retake Photo
+                            </button>
+                        </div>
+
+                        <div id="camera-error" class="hidden alert alert-error" style="margin-top: 1rem;"></div>
+                        <div id="camera-success" class="hidden alert alert-success" style="margin-top: 1rem;">
+                            ✓ Photo captured successfully!
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Validation Code</label>
+                    <input type="text" id="validation-code-input" class="form-input"
+                        placeholder="Enter code from teacher" required>
+                </div>
+
+                <button id="submit-attendance-btn" class="btn btn-primary" style="width: 100%;">
+                    <span id="submit-btn-text">Submit Attendance</span>
+                    <div id="submit-spinner" class="spinner spinner-small hidden"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeHistoryModal()"></div>
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>My Attendance History</h2>
+                <button onclick="closeHistoryModal()" class="btn-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="history-loading" class="flex-center" style="padding: 2rem;">
+                    <div class="spinner"></div>
+                </div>
+
+                <div id="history-summary" class="hidden mb-md">
+                    <p class="text-secondary" style="margin: 0;">Total classes attended: <strong
+                            id="history-total">0</strong></p>
+                </div>
+
+                <!-- Compact Header for history -->
+                <div id="history-header" class="compact-row hidden"
+                    style="background: var(--bg-tertiary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-secondary);">
+                    <div class="row-main">
+                        <span class="row-sl">SL</span>
+                        <span class="row-reg" style="width: 180px;">Class Name</span>
+                        <span class="row-name">Type</span>
+                    </div>
+                    <span class="row-time">Date & Time</span>
+                </div>
+
+                <div id="history-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© 2024 All rights reserved.</p>
+    </footer>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/student.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,14 @@
+{
+    "name": "digital-attendance-frontend",
+    "version": "1.0.0",
+    "description": "Frontend for Digital Attendance System - SOLID Architecture",
+    "scripts": {
+        "start": "npx live-server src --port=5500"
+    },
+    "keywords": [
+        "attendance",
+        "frontend"
+    ],
+    "author": "",
+    "license": "ISC"
+}

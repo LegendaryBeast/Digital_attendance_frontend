@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - SUST Digital Attendance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">🎓 SUST Digital Attendance</div>
+            <div class="flex gap-md">
+                <span id="teacher-name" class="text-secondary"></span>
+                <button onclick="logout()" class="btn btn-outline">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Welcome Section -->
+        <div class="mb-lg fade-in">
+            <h1>Teacher Dashboard</h1>
+            <p id="teacher-info"></p>
+        </div>
+
+        <!-- Alert Container -->
+        <div id="alert-container"></div>
+
+        <!-- Create Class Section -->
+        <div class="card mb-lg fade-in">
+            <div class="card-header">
+                <h2>Create New Class</h2>
+            </div>
+            <div class="card-body">
+                <form id="create-class-form">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Class Details</label>
+                            <input type="text" id="class-name" class="form-input"
+                                placeholder="Class Course code - Section - Class Number" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Class Type</label>
+                            <select id="class-type" class="form-select" required>
+                                <option value="">Select type</option>
+                                <option value="online">Online</option>
+                                <option value="offline">Offline</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Validation Code</label>
+                        <div class="flex gap-sm">
+                            <input type="text" id="validation-code" class="form-input" placeholder="e.g., ABC123"
+                                required>
+                            <button type="button" onclick="generateRandomCode()" class="btn btn-secondary">
+                                Generate
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="location-section" class="hidden">
+                        <div class="form-group">
+                            <div id="location-display"></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success" style="width: 100%;">
+                        <span id="create-btn-text">Create Class</span>
+                        <div id="create-spinner" class="spinner spinner-small hidden"></div>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- My Classes Section -->
+        <div class="card fade-in">
+            <div class="card-header flex-between">
+                <div>
+                    <h2>My Classes</h2>
+                </div>
+                <button onclick="loadMyClasses()" class="btn btn-secondary">
+                    Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="classes-loading" class="flex-center" style="padding: 2rem;">
+                    <div class="spinner"></div>
+                </div>
+                <div id="classes-container" class="hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Attendance Modal -->
+    <div id="attendance-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeAttendanceModal()"></div>
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2 id="modal-class-name"></h2>
+                <button onclick="closeAttendanceModal()" class="btn-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-alert"></div>
+
+                <div class="flex-between mb-md">
+                    <div>
+                        <p class="text-secondary" style="margin: 0;">Total Students: <strong
+                                id="total-students">0</strong></p>
+                    </div>
+                    <button id="export-btn" class="btn btn-primary">
+                        Export to Excel
+                    </button>
+                </div>
+
+                <!-- Compact Header -->
+                <div class="compact-row"
+                    style="background: var(--bg-tertiary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-secondary);">
+                    <div class="row-main">
+                        <span class="row-sl">SL</span>
+                        <span class="row-reg">Reg. Number</span>
+                        <span class="row-name">Name</span>
+                    </div>
+                    <span class="row-time">Time</span>
+                </div>
+
+                <div id="attendance-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Code Modal -->
+    <div id="code-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeCodeModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Update Validation Code</h2>
+                <button onclick="closeCodeModal()" class="btn-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="code-modal-alert"></div>
+                <div class="form-group">
+                    <label class="form-label">New Validation Code</label>
+                    <div class="flex gap-sm">
+                        <input type="text" id="new-validation-code" class="form-input" required>
+                        <button type="button" onclick="generateRandomCodeForUpdate()" class="btn btn-secondary">
+                            Generate
+                        </button>
+                    </div>
+                </div>
+                <button id="update-code-btn" class="btn btn-success" style="width: 100%;">
+                    Update Code
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© 2024 All rights reserved.</p>
+    </footer>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/teacher.js"></script>
+</body>
+
+</html>
