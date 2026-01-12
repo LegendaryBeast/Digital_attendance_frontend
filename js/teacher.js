@@ -138,7 +138,8 @@ document.getElementById('create-class-form').addEventListener('submit', async (e
                 name,
                 type,
                 validationCode,
-                location: teacherLocation
+                location: teacherLocation,
+                courseId: document.getElementById('class-course').value || null // Include courseId in request
             })
         });
 
@@ -211,6 +212,14 @@ async function loadMyClasses() {
           >
             Update Code
           </button>
+          ${cls.type === 'offline' ? `
+          <button 
+            onclick="openLocationModal('${cls._id}')" 
+            class="btn btn-secondary"
+          >
+            Update Location
+          </button>
+          ` : ''}
           <button 
             onclick="toggleClass('${cls._id}', ${cls.isActive})" 
             class="btn btn-outline"
@@ -411,5 +420,356 @@ async function deleteClass(classId, className) {
     }
 }
 
-// Initialize
-loadMyClasses();
+// ================== COURSE MANAGEMENT ==================
+
+let currentCourseId = null;
+let teacherCourses = [];
+
+// Create course form handler
+document.getElementById('create-course-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const courseCode = document.getElementById('course-code').value.trim();
+    const courseName = document.getElementById('course-name').value.trim();
+    const session = document.getElementById('course-session').value.trim();
+
+    const btnText = document.getElementById('create-course-btn-text');
+    const spinner = document.getElementById('create-course-spinner');
+
+    btnText.classList.add('hidden');
+    spinner.classList.remove('hidden');
+
+    try {
+        await apiCall('/courses/create', {
+            method: 'POST',
+            body: JSON.stringify({
+                courseCode,
+                courseName,
+                session
+            })
+        });
+
+        showAlert('alert-container', '✓ Course created successfully!', 'success');
+
+        // Reset form
+        document.getElementById('create-course-form').reset();
+
+        // Reload courses and update dropdown
+        await loadTeacherCourses();
+        populateCourseDropdown();
+    } catch (error) {
+        showAlert('alert-container', error.message, 'error');
+    } finally {
+        btnText.classList.remove('hidden');
+        spinner.classList.add('hidden');
+    }
+});
+
+// Load teacher's courses
+async function loadTeacherCourses() {
+    try {
+        const data = await apiCall('/courses/teacher/my-courses');
+        teacherCourses = data.courses;
+        const container = document.getElementById('courses-container');
+        const loading = document.getElementById('courses-loading');
+
+        loading.classList.add('hidden');
+        container.classList.remove('hidden');
+
+        if (data.courses.length === 0) {
+            container.innerHTML = '<p class="text-secondary">No courses created yet</p>';
+            return;
+        }
+
+        container.innerHTML = data.courses.map(course => `
+      <div class="class-card">
+        <div class="flex-between mb-sm">
+          <h3 style="margin: 0;">${course.courseCode} - ${course.courseName}</h3>
+          <span class="badge badge-primary">Session: ${course.session}</span>
+        </div>
+        
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">
+          Created: ${new Date(course.createdAt).toLocaleString('en-US', {
+            timeZone: 'Asia/Dhaka',
+            dateStyle: 'medium',
+            timeStyle: 'short'
+        })}
+        </p>
+
+        <div class="flex gap-sm" style="flex-wrap: wrap;">
+          <button 
+            onclick="viewCumulativeAttendance('${course._id}')" 
+            class="btn btn-primary"
+          >
+            View Cumulative Attendance
+          </button>
+          <button 
+            onclick="downloadCumulativeAttendance('${course._id}')" 
+            class="btn btn-secondary"
+          >
+            Download Report
+          </button>
+          <button 
+            onclick="deleteCourse('${course._id}', '${course.courseCode.replace(/'/g, "\\'")}')" 
+            class="btn btn-error"
+            style="margin-left: auto;"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    `).join('');
+    } catch (error) {
+        console.error('Load courses error:', error);
+        showAlert('alert-container', error.message, 'error');
+    }
+}
+
+// Populate course dropdown in class creation form
+function populateCourseDropdown() {
+    const dropdown = document.getElementById('class-course');
+
+    // Keep the default option and add courses
+    dropdown.innerHTML = `
+        <option value="">Individual Class (No Course)</option>
+        ${teacherCourses.map(course => `
+            <option value="${course._id}">${course.courseCode} - ${course.courseName} (${course.session})</option>
+        `).join('')}
+    `;
+}
+
+// View cumulative attendance for a course
+async function viewCumulativeAttendance(courseId) {
+    try {
+        const data = await apiCall(`/courses/${courseId}/cumulative-attendance`);
+        currentCourseId = courseId;
+
+        document.getElementById('cumulative-course-name').textContent =
+            `${data.course.courseCode} - ${data.course.courseName} (${data.course.session})`;
+        document.getElementById('cumulative-total-students').textContent = data.totalStudents;
+
+        const attendanceList = document.getElementById('cumulative-attendance-list');
+
+        if (data.attendance.length === 0) {
+            attendanceList.innerHTML = '<p class="text-secondary text-center" style="padding: 2rem;">No attendance records yet</p>';
+        } else {
+            attendanceList.innerHTML = data.attendance.map((record, index) => `
+        <div class="compact-row" style="align-items: center;">
+          <div class="row-main">
+            <span class="row-sl">${index + 1}</span>
+            <span class="row-reg">${record.registrationNumber}</span>
+            <span class="row-name">${record.studentName}</span>
+          </div>
+          <span class="row-time">${record.attendanceCount} class${record.attendanceCount !== 1 ? 'es' : ''}</span>
+        </div>
+      `).join('');
+        }
+
+        document.getElementById('cumulative-modal').classList.remove('hidden');
+    } catch (error) {
+        showAlert('alert-container', error.message, 'error');
+    }
+}
+
+// Close cumulative attendance modal
+function closeCumulativeModal() {
+    document.getElementById('cumulative-modal').classList.add('hidden');
+    currentCourseId = null;
+}
+
+// Download cumulative attendance Excel
+async function downloadCumulativeAttendance(courseId) {
+    try {
+        const response = await fetch(`${API_URL}/courses/${courseId}/download-cumulative`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Export failed');
+        }
+
+        // Get the filename from Content-Disposition header
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'cumulative_attendance.xlsx';
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename="(.+)"/);
+            if (match) filename = match[1];
+        }
+
+        // Download the file
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+
+        showAlert('alert-container', '✓ Cumulative attendance downloaded successfully!', 'success');
+    } catch (error) {
+        showAlert('alert-container', error.message, 'error');
+    }
+}
+
+// Export cumulative attendance from modal
+document.getElementById('export-cumulative-btn').addEventListener('click', async () => {
+    if (!currentCourseId) return;
+
+    const btn = document.getElementById('export-cumulative-btn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+
+    try {
+        await downloadCumulativeAttendance(currentCourseId);
+        showAlert('cumulative-modal-alert', '✓ Excel file downloaded successfully!', 'success');
+    } catch (error) {
+        showAlert('cumulative-modal-alert', error.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+});
+
+// Delete course
+async function deleteCourse(courseId, courseCode) {
+    if (!confirm(`Are you sure you want to delete course "${courseCode}"?\n\nThis will delete all cumulative attendance records for this course. Classes linked to this course will become individual classes. This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        await apiCall(`/courses/${courseId}`, {
+            method: 'DELETE'
+        });
+
+        showAlert('alert-container', '✓ Course deleted successfully!', 'success');
+        await loadTeacherCourses();
+        populateCourseDropdown();
+    } catch (error) {
+        showAlert('alert-container', error.message, 'error');
+    }
+}
+// ================== COURSE MANAGEMENT MODAL ==================
+
+function openCourseManagementModal() {
+    document.getElementById('course-management-modal').classList.remove('hidden');
+    loadTeacherCourses();
+}
+
+function closeCourseManagementModal() {
+    document.getElementById('course-management-modal').classList.add('hidden');
+}
+
+// ================== LOCATION UPDATE ==================
+
+let updateLocationCoords = null;
+
+function openLocationModal(classId) {
+    currentClassId = classId;
+    updateLocationCoords = null;
+    document.getElementById('location-modal-alert').innerHTML = '';
+    document.getElementById('update-location-display').innerHTML = '';
+    document.getElementById('update-location-btn').disabled = true;
+    document.getElementById('location-modal').classList.remove('hidden');
+}
+
+function closeLocationModal() {
+    document.getElementById('location-modal').classList.add('hidden');
+    currentClassId = null;
+    updateLocationCoords = null;
+}
+
+async function getUpdateLocation() {
+    const displayDiv = document.getElementById('update-location-display');
+    const updateBtn = document.getElementById('update-location-btn');
+
+    displayDiv.innerHTML = `
+    <div class="flex gap-sm flex-center">
+      <div class="spinner spinner-small"></div>
+      <span class="text-secondary">Getting your location...</span>
+    </div>
+    `;
+
+    try {
+        const position = await new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported'));
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                resolve,
+                reject,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        });
+
+        updateLocationCoords = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+        };
+
+        displayDiv.innerHTML = `
+        <div class="alert alert-success">
+            ✓ Location acquired: ${updateLocationCoords.latitude.toFixed(6)}, ${updateLocationCoords.longitude.toFixed(6)}
+        </div>
+        `;
+        updateBtn.disabled = false;
+
+    } catch (error) {
+        displayDiv.innerHTML = `
+        <div class="alert alert-error">
+            ⚠ ${error.message}
+        </div>
+        `;
+        updateLocationCoords = null;
+        updateBtn.disabled = true;
+    }
+}
+
+document.getElementById('update-location-btn').addEventListener('click', async () => {
+    if (!currentClassId || !updateLocationCoords) return;
+
+    const btn = document.getElementById('update-location-btn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Updating...';
+
+    try {
+        await apiCall(`/classes/${currentClassId}/location`, {
+            method: 'PATCH',
+            body: JSON.stringify({ location: updateLocationCoords })
+        });
+
+        showAlert('location-modal-alert', '✓ Location updated successfully!', 'success');
+
+        setTimeout(() => {
+            closeLocationModal();
+            loadMyClasses();
+        }, 1500);
+    } catch (error) {
+        showAlert('location-modal-alert', error.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+});
+
+
+// ================== INITIALIZATION ==================
+
+// Initialize - load both classes and courses
+(async function initialize() {
+    await loadTeacherCourses();
+    populateCourseDropdown();
+    loadMyClasses();
+})();

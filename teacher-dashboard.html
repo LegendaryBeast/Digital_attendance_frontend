@@ -33,6 +33,17 @@
         <!-- Alert Container -->
         <div id="alert-container"></div>
 
+        <!-- Create Course Button Section -->
+        <div class="mb-lg fade-in">
+            <button onclick="openCourseManagementModal()" class="btn btn-primary"
+                style="width: 100%; padding: 1.5rem; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; gap: 1rem;">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Create Course
+            </button>
+        </div>
+
         <!-- Create Class Section -->
         <div class="card mb-lg fade-in">
             <div class="card-header">
@@ -57,6 +68,17 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label">Linked Course (Optional)</label>
+                        <select id="class-course" class="form-select">
+                            <option value="">Individual Class (No Course)</option>
+                            <!-- Course options will be populated dynamically -->
+                        </select>
+                        <small style="color: var(--text-secondary); font-size: 0.85rem;">
+                            Select a course to track cumulative attendance, or leave as "Individual Class"
+                        </small>
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">Validation Code</label>
                         <div class="flex gap-sm">
                             <input type="text" id="validation-code" class="form-input" placeholder="e.g., ABC123"
@@ -78,6 +100,24 @@
                         <div id="create-spinner" class="spinner spinner-small hidden"></div>
                     </button>
                 </form>
+            </div>
+        </div>
+
+        <!-- My Courses Section -->
+        <div class="card mb-lg fade-in">
+            <div class="card-header flex-between">
+                <div>
+                    <h2>My Courses</h2>
+                </div>
+                <button onclick="loadTeacherCourses()" class="btn btn-secondary">
+                    Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="courses-loading" class="flex-center" style="padding: 2rem;">
+                    <div class="spinner"></div>
+                </div>
+                <div id="courses-container" class="hidden"></div>
             </div>
         </div>
 
@@ -159,6 +199,110 @@
                 <button id="update-code-btn" class="btn btn-success" style="width: 100%;">
                     Update Code
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cumulative Attendance Modal -->
+    <div id="cumulative-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeCumulativeModal()"></div>
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 id="cumulative-course-name"></h2>
+                <button onclick="closeCumulativeModal()" class="btn-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="cumulative-modal-alert"></div>
+
+                <div class="flex-between mb-md">
+                    <div>
+                        <p class="text-secondary" style="margin: 0;">Total Students: <strong
+                                id="cumulative-total-students">0</strong></p>
+                    </div>
+                    <button id="export-cumulative-btn" class="btn btn-primary">
+                        Export to Excel
+                    </button>
+                </div>
+
+                <!-- Compact Header -->
+                <div class="compact-row"
+                    style="background: var(--bg-tertiary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-secondary);">
+                    <div class="row-main">
+                        <span class="row-sl">SL</span>
+                        <span class="row-reg">Reg. Number</span>
+                        <span class="row-name">Name</span>
+                    </div>
+                    <span class="row-time">Classes Attended</span>
+                </div>
+
+                <div id="cumulative-attendance-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Creation Modal -->
+    <div id="course-management-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeCourseManagementModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Course</h2>
+                <button onclick="closeCourseManagementModal()" class="btn-close">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Create Course Form inside Modal -->
+                <form id="create-course-form">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Course Code</label>
+                            <input type="text" id="course-code" class="form-input" placeholder="e.g., CSE101" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Session</label>
+                            <input type="text" id="course-session" class="form-input" placeholder="e.g., 2024-2025"
+                                required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Course Name</label>
+                        <input type="text" id="course-name" class="form-input"
+                            placeholder="e.g., Programming Fundamentals" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-success" style="width: 100%;">
+                        <span id="create-course-btn-text">Create Course</span>
+                        <div id="create-course-spinner" class="spinner spinner-small hidden"></div>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Location Modal -->
+    <div id="location-modal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeLocationModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Update Class Location</h2>
+                <button onclick="closeLocationModal()" class="btn-close">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="location-modal-alert"></div>
+
+                <div class="text-center mb-md">
+                    <p class="text-secondary">Click the button below to get your current location.</p>
+                </div>
+
+                <div id="update-location-display" class="mb-md"></div>
+
+                <div class="flex gap-md">
+                    <button type="button" onclick="getUpdateLocation()" class="btn btn-secondary" style="flex: 1;">
+                        Get Location
+                    </button>
+                    <button id="update-location-btn" class="btn btn-success" style="flex: 1;" disabled>
+                        Update
+                    </button>
+                </div>
             </div>
         </div>
     </div>
