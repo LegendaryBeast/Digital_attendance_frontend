@@ -1,5 +1,5 @@
-window.API_URL = 'https://digitalattendancesystem-production.up.railway.app/api';
-
+window.API_URL = 'http://localhost:3000/api';
+// https://digitalattendancesystem-production.up.railway.app/api
 // Show alert message
 function showAlert(elementId, message, type) {
     const alertDiv = document.getElementById(elementId);

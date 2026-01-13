@@ -33,17 +33,6 @@
         <!-- Alert Container -->
         <div id="alert-container"></div>
 
-        <!-- Create Course Button Section -->
-        <div class="mb-lg fade-in">
-            <button onclick="openCourseManagementModal()" class="btn btn-primary"
-                style="width: 100%; padding: 1.5rem; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; gap: 1rem;">
-                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Create Course
-            </button>
-        </div>
-
         <!-- Create Class Section -->
         <div class="card mb-lg fade-in">
             <div class="card-header">
@@ -109,9 +98,14 @@
                 <div>
                     <h2>My Courses</h2>
                 </div>
-                <button onclick="loadTeacherCourses()" class="btn btn-secondary">
-                    Refresh
-                </button>
+                <div class="flex gap-sm">
+                    <button onclick="openCourseManagementModal()" class="btn btn-primary">
+                        Create New Course
+                    </button>
+                    <button onclick="loadTeacherCourses()" class="btn btn-secondary">
+                        Refresh
+                    </button>
+                </div>
             </div>
             <div class="card-body">
                 <div id="courses-loading" class="flex-center" style="padding: 2rem;">
